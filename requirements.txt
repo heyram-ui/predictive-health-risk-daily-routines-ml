@@ -5,6 +5,8 @@ Flask-SQLAlchemy
 Flask-Login
 Flask-Migrate
 Flask-SocketIO
+Flask-Mail
+
 
 
 python-dotenv==1.0.0
