@@ -38,3 +38,13 @@ numpy==1.24.3
 scikit-learn==1.3.0
 pandas==2.0.3
 streamlit
+Flask
+Flask-Mail
+psycopg2-binary
+pandas
+numpy
+scikit-learn
+xhtml2pdf
+python-dotenv
+gunicorn
+reportlab
