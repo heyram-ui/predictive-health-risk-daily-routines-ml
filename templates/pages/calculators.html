@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center animate-in">
+    <div class="col-lg-8">
+        <h2 class="text-white-shadow text-center mb-5">Health Calculators</h2>
+
+        <!-- BMI Calculator -->
+        <div class="glass-card mb-4">
+            <h4 class="text-primary mb-3"><i class="fas fa-weight me-2"></i>BMI Calculator</h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Weight (kg)</label>
+                    <input type="number" id="weight" class="form-control form-glass" placeholder="70">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Height (cm)</label>
+                    <input type="number" id="height" class="form-control form-glass" placeholder="175">
+                </div>
+                <div class="col-md-4 d-grid align-items-end">
+                    <button onclick="calculateBMI()" class="btn btn-primary-glass">Calculate</button>
+                </div>
+            </div>
+            <div id="bmiResult" class="mt-3 text-center fw-bold" style="display:none;"></div>
+        </div>
+
+        <!-- BP Calculator (New V4.5) -->
+        <div class="glass-card mb-4">
+            <h4 class="text-danger mb-3"><i class="fas fa-heartbeat me-2"></i>Blood Pressure Checker</h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Systolic (Top)</label>
+                    <input type="number" id="bpSys" class="form-control form-glass" placeholder="120">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Diastolic (Bottom)</label>
+                    <input type="number" id="bpDias" class="form-control form-glass" placeholder="80">
+                </div>
+                <div class="col-md-4 d-grid align-items-end">
+                    <button onclick="calculateBP()" class="btn btn-danger-glass">Check Status</button>
+                </div>
+            </div>
+            <div id="bpResult" class="mt-3 text-center fw-bold" style="display:none;"></div>
+        </div>
+
+        <!-- BP Chart -->
+        <div class="glass-card">
+            <h4 class="text-secondary mb-3"><i class="fas fa-table me-2"></i>Blood Pressure Categories</h4>
+            <table class="table text-dark">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Systolic (Upper)</th>
+                        <th>Diastolic (Lower)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-info">
+                        <td>Hypotension (Low)</td>
+                        <td>Less than 90</td>
+                        <td>Less than 60</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td>Normal</td>
+                        <td>Less than 120</td>
+                        <td>Less than 80</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td>Elevated</td>
+                        <td>120 - 129</td>
+                        <td>Less than 80</td>
+                    </tr>
+                    <tr class="table-danger">
+                        <td>High BP (Stage 1)</td>
+                        <td>130 - 139</td>
+                        <td>80 - 89</td>
+                    </tr>
+                    <tr class="bg-danger text-white">
+                        <td>Hypertensive Crisis</td>
+                        <td>Higher than 180</td>
+                        <td>Higher than 120</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateBMI() {
+        const w = parseFloat(document.getElementById('weight').value);
+        const h = parseFloat(document.getElementById('height').value) / 100;
+
+        if (w && h) {
+            const bmi = (w / (h * h)).toFixed(1);
+            let status = 'Normal';
+            let color = 'text-success';
+
+            if (bmi < 18.5) { status = 'Underweight'; color = 'text-warning'; }
+            else if (bmi >= 25) { status = 'Overweight'; color = 'text-warning'; }
+            else if (bmi >= 30) { status = 'Obese'; color = 'text-danger'; }
+
+            const resDiv = document.getElementById('bmiResult');
+            resDiv.style.display = 'block';
+            resDiv.innerHTML = `Your BMI: <span class="${color} fs-4">${bmi}</span> (${status})`;
+        }
+    }
+
+    function calculateBP() {
+        const sys = parseInt(document.getElementById('bpSys').value);
+        const dias = parseInt(document.getElementById('bpDias').value);
+
+        if (sys && dias) {
+            let status = 'Normal';
+            let color = 'text-success';
+            let advice = 'Keep it up!';
+
+            if (sys < 90 || dias < 60) {
+                status = 'Hypotension (Low)';
+                color = 'text-info';
+                advice = 'Consider more fluids and salt.';
+            } else if (sys > 180 || dias > 120) {
+                status = 'Hypertensive Crisis';
+                color = 'text-danger fw-bold';
+                advice = 'Seek Emergency Care Immediately!';
+            } else if (sys >= 130 || dias >= 80) {
+                status = 'High BP (Stage 1)';
+                color = 'text-danger';
+                advice = 'Consult a doctor.';
+            } else if (sys >= 120 && sys < 130 && dias < 80) {
+                status = 'Elevated';
+                color = 'text-warning';
+                advice = 'Monitor closely.';
+            }
+
+            const resDiv = document.getElementById('bpResult');
+            resDiv.style.display = 'block';
+            resDiv.className = `mt-3 text-center fw-bold ${color}`;
+            resDiv.innerHTML = `${status}<br><small class="text-muted fw-normal">${advice}</small>`;
+        }
+    }
+</script>
+{% endblock %}

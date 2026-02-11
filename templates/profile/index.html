@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="container py-5">
+    <div class="row g-4">
+        
+        <div class="col-lg-4">
+            <div class="health-card text-center h-100">
+                <div class="avatar-circle mb-3 mx-auto">
+                    {{ user[1][0] if user else 'U' }}
+                </div>
+                <h3 class="fw-bold">{{ user[1] if user else 'Guest User' }}</h3>
+                <p class="text-muted">{{ user[2] if user else 'No Email' }}</p>
+                <hr class="opacity-10 my-4">
+                
+                <div class="text-start px-3">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="fw-bold text-muted">Age</span>
+                        <span class="fw-bold">{{ user[4] if user else 'N/A' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="fw-bold text-muted">Emergency</span>
+                        <span class="fw-bold text-danger">{{ user[5] if user else 'Not Set' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold text-muted">Member Since</span>
+                        <span>{{ user[6].strftime('%b %Y') if user and user[6] else 'N/A' }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-5 d-grid gap-2">
+                    <a href="/download_report" class="btn btn-outline-primary btn-pill">
+                        <i class="fas fa-file-download me-2"></i>Download Report
+                    </a>
+                    <a href="/logout" class="btn btn-danger btn-pill">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="health-card h-100 p-0 overflow-hidden d-flex flex-column">
+                <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0"><i class="fas fa-map-marked-alt text-primary me-2"></i>Medical Map</h5>
+                    <button class="btn btn-sm btn-primary-modern" onclick="getLocation()">
+                        <i class="fas fa-location-arrow me-2"></i>Find Me
+                    </button>
+                </div>
+                
+                <div id="mapStatus" class="bg-light px-4 py-2 small text-muted border-bottom">
+                    <i class="fas fa-info-circle me-1"></i> Click "Find Me" to locate nearby services.
+                </div>
+
+                <div id="map" style="height: 500px; width: 100%; background: #e9ecef;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    let map;
+    let markers = [];
+
+    // 1. Initialize Map (Default View)
+    document.addEventListener("DOMContentLoaded", function() {
+        // Create Map
+        map = L.map('map').setView([20.5937, 78.9629], 5); // Default: India
+        
+        // Add Tiles (CartoDB for clean look)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+    });
+
+    // 2. Get Location
+    function getLocation() {
+        const status = document.getElementById('mapStatus');
+        status.innerHTML = '<span class="text-primary fw-bold"><span class="spinner-border spinner-border-sm me-2"></span>Locating GPS...</span>';
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition, showError, {
+                enableHighAccuracy: true
+            });
+        } else {
+            status.innerHTML = "❌ Geolocation is not supported by this browser.";
+        }
+    }
+
+    // 3. Show Position & Fetch Places
+    function showPosition(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        
+        document.getElementById('mapStatus').innerHTML = '✅ Location Found. Scanning for hospitals...';
+
+        // Zoom to user
+        map.setView([lat, lon], 14);
+
+        // Add User Marker (Blue Pulse)
+        L.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: "#4f46e5",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 1
+        }).addTo(map).bindPopup("You are here").openPopup();
+
+        // Fetch Hospitals
+        fetchNearbyPlaces(lat, lon);
+    }
+
+    function fetchNearbyPlaces(lat, lon) {
+        // Query for Hospitals & Pharmacies (5km radius)
+        const query = `
+            [out:json][timeout:25];
+            (
+              node["amenity"="hospital"](around:5000, ${lat}, ${lon});
+              node["amenity"="pharmacy"](around:5000, ${lat}, ${lon});
+              node["amenity"="clinic"](around:5000, ${lat}, ${lon});
+            );
+            out body;
+        `;
+        const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                // Clear old markers
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+
+                if(data.elements.length === 0) {
+                    document.getElementById('mapStatus').innerHTML = '⚠️ No hospitals found in 5km range.';
+                    return;
+                }
+
+                let count = 0;
+                data.elements.forEach(place => {
+                    if (place.lat && place.lon) {
+                        let type = place.tags.amenity;
+                        let name = place.tags.name || "Medical Center";
+                        let color = (type === "pharmacy") ? "green" : "red";
+                        let iconUrl = `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`;
+
+                        let icon = new L.Icon({
+                            iconUrl: iconUrl,
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        });
+
+                        let m = L.marker([place.lat, place.lon], {icon: icon})
+                            .addTo(map)
+                            .bindPopup(`<b>${name}</b><br><span class="text-capitalize text-muted">${type}</span>`);
+                        markers.push(m);
+                        count++;
+                    }
+                });
+                document.getElementById('mapStatus').innerHTML = `✅ Found ${count} nearby medical services.`;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('mapStatus').innerHTML = "❌ Error loading map data.";
+            });
+    }
+
+    function showError(error) {
+        let msg = "Unknown Error";
+        if(error.code == 1) msg = "⚠️ Please Allow Location Permission.";
+        if(error.code == 2) msg = "⚠️ Location Unavailable.";
+        if(error.code == 3) msg = "⚠️ Request Timed Out.";
+        document.getElementById('mapStatus').innerHTML = msg;
+    }
+</script>
+{% endblock %}

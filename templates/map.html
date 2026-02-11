@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health Risk - Nearby Facilities</title>
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .facility-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .facility-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Find Nearby Healthcare Facilities</h1>
+    
+    <div class="controls">
+        <button onclick="getCurrentLocation()">Use My Location</button>
+        <select id="facilityType">
+            <option value="hospital">Hospitals</option>
+            <option value="pharmacy">Pharmacies</option>
+        </select>
+        <button onclick="searchNearby()">Search</button>
+    </div>
+    
+    <div id="map"></div>
+    <div class="facility-list" id="facilityList"></div>
+
+    <script>
+        let map;
+        let userMarker;
+        let facilityMarkers = [];
+        let userLocation = null;
+
+        // Initialize map
+        function initMap() {
+            // Default location (Chennai, for example)
+            const defaultLocation = { lat: 13.0827, lng: 80.2707 };
+            
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: defaultLocation,
+                zoom: 13
+            });
+        }
+
+        // Get user's current location
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        // Center map on user location
+                        map.setCenter(userLocation);
+                        
+                        // Add user marker
+                        if (userMarker) {
+                            userMarker.setMap(null);
+                        }
+                        userMarker = new google.maps.Marker({
+                            position: userLocation,
+                            map: map,
+                            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                            title: 'Your Location'
+                        });
+                        
+                        alert('Location found! Now click Search to find facilities.');
+                    },
+                    (error) => {
+                        alert('Error getting location: ' + error.message);
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        // Search for nearby facilities
+        function searchNearby() {
+            if (!userLocation) {
+                alert('Please get your location first!');
+                return;
+            }
+            
+            const facilityType = document.getElementById('facilityType').value;
+            
+            // Clear previous markers
+            facilityMarkers.forEach(marker => marker.setMap(null));
+            facilityMarkers = [];
+            
+            // Use Google Places API directly
+            const service = new google.maps.places.PlacesService(map);
+            const request = {
+                location: userLocation,
+                radius: 5000, // 5km
+                type: facilityType
+            };
+            
+            service.nearbySearch(request, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                    displayFacilities(results);
+                } else {
+                    alert('Search failed: ' + status);
+                }
+            });
+        }
+
+        // Display facilities on map and in list
+        function displayFacilities(facilities) {
+            const listContainer = document.getElementById('facilityList');
+            listContainer.innerHTML = '<h3>Found ' + facilities.length + ' facilities:</h3>';
+            
+            facilities.forEach((facility, index) => {
+                // Add marker
+                const marker = new google.maps.Marker({
+                    position: facility.geometry.location,
+                    map: map,
+                    title: facility.name,
+                    label: (index + 1).toString()
+                });
+                
+                // Add info window
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <h3>${facility.name}</h3>
+                        <p>${facility.vicinity}</p>
+                        <p>Rating: ${facility.rating || 'N/A'}</p>
+                    `
+                });
+                
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+                
+                facilityMarkers.push(marker);
+                
+                // Add to list
+                const facilityDiv = document.createElement('div');
+                facilityDiv.className = 'facility-item';
+                facilityDiv.innerHTML = `
+                    <strong>${index + 1}. ${facility.name}</strong><br>
+                    Address: ${facility.vicinity}<br>
+                    Rating: ${facility.rating || 'N/A'} ⭐<br>
+                    <button onclick="getDirections(${facility.geometry.location.lat()}, ${facility.geometry.location.lng()})">
+                        Get Directions
+                    </button>
+                `;
+                listContainer.appendChild(facilityDiv);
+            });
+        }
+
+        // Get directions to facility
+        function getDirections(destLat, destLng) {
+            if (!userLocation) return;
+            
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${destLat},${destLng}`;
+            window.open(url, '_blank');
+        }
+    </script>
+    
+    <!-- Load Google Maps JavaScript API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&libraries=places&callback=initMap" async defer></script>
+</body>
+</html>

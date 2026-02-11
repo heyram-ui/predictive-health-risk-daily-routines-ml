@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">WHO Health Standards</h1>
+        <p class="text-muted">Benchmarks for healthy living as per World Health Organization.</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="health-card h-100">
+                <h4 class="text-danger fw-bold">Blood Pressure</h4>
+                <table class="table table-borderless mt-3">
+                    <tr><td>Normal:</td><td class="text-success fw-bold">&lt; 120/80</td></tr>
+                    <tr><td>Elevated:</td><td class="text-warning fw-bold">120-129 / &lt;80</td></tr>
+                    <tr><td>Hypertension 1:</td><td class="text-danger fw-bold">130-139 / 80-89</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="health-card h-100">
+                <h4 class="text-primary fw-bold">BMI Categories</h4>
+                <table class="table table-borderless mt-3">
+                    <tr><td>Underweight:</td><td>&lt; 18.5</td></tr>
+                    <tr><td>Normal:</td><td class="text-success fw-bold">18.5 - 24.9</td></tr>
+                    <tr><td>Overweight:</td><td class="text-warning fw-bold">25 - 29.9</td></tr>
+                    <tr><td>Obese:</td><td class="text-danger fw-bold">&gt; 30</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
