@@ -12,7 +12,29 @@ import os
 from xhtml2pdf import pisa
 from dotenv import load_dotenv 
 from io import BytesIO
+import os
+import psycopg2
+from dotenv import load_dotenv
+from flask import Flask # Assuming you are using Flask
 
+# 1. Load the environment variables from your .env file
+load_dotenv()
+
+app = Flask(__name__)
+
+# 2. Get the Neon Connection String
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# 3. Create a helper function to connect to the database
+def get_db_connection():
+    # The 'sslmode=require' is important for Neon security
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
+
+@app.route('/')
+def index():
+    return "Health Predictor is connected to Neon!"
+    
 load_dotenv()
 
 app = Flask(__name__)
